@@ -21,6 +21,7 @@
 #define PINGPONG_REPEATS 1000
 #define PINGPONG_MSG_SIZE 1024
 
+#define sstmac_app_name pingpong
 int main(int argc, char* argv[]) {
   MPI_Init(&argc, &argv);
 
@@ -57,11 +58,14 @@ int main(int argc, char* argv[]) {
   MPI_Barrier(MPI_COMM_WORLD);
 
   if (me < 2) {
+  #pragma sst null_variable replace nullptr
     char* sendBuffer = (char*)malloc(sizeof(char*) * msgSize);
+  #pragma sst null_variable replace nullptr
     char* recvBuffer = (char*)malloc(sizeof(char*) * msgSize);
 
     MPI_Status status;
 
+#pragma sst compute
     for (int i = 0; i < msgSize; ++i) {
       sendBuffer[i] = i;
       recvBuffer[i] = 0;

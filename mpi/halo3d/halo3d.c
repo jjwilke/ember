@@ -40,6 +40,7 @@ int convert_position_to_rank(const int pX, const int pY, const int pZ,
   }
 }
 
+#define sstmac_app_name halo3d
 int main(int argc, char* argv[]) {
   MPI_Init(&argc, &argv);
 
@@ -211,18 +212,12 @@ int main(int argc, char* argv[]) {
   MPI_Request* requests;
   requests = (MPI_Request*)malloc(sizeof(MPI_Request) * 4);
 
+#pragma sst start_null_variable replace nullptr
   double* xUpSendBuffer = (double*)malloc(sizeof(double) * ny * nz * vars);
   double* xUpRecvBuffer = (double*)malloc(sizeof(double) * ny * nz * vars);
 
   double* xDownSendBuffer = (double*)malloc(sizeof(double) * ny * nz * vars);
   double* xDownRecvBuffer = (double*)malloc(sizeof(double) * ny * nz * vars);
-
-  for (int i = 0; i < ny * nz * vars; i++) {
-    xUpSendBuffer[i] = i;
-    xUpRecvBuffer[i] = i;
-    xDownSendBuffer[i] = i;
-    xDownRecvBuffer[i] = i;
-  }
 
   double* yUpSendBuffer = (double*)malloc(sizeof(double) * nx * nz * vars);
   double* yUpRecvBuffer = (double*)malloc(sizeof(double) * nx * nz * vars);
@@ -230,6 +225,22 @@ int main(int argc, char* argv[]) {
   double* yDownSendBuffer = (double*)malloc(sizeof(double) * nx * nz * vars);
   double* yDownRecvBuffer = (double*)malloc(sizeof(double) * nx * nz * vars);
 
+  double* zUpSendBuffer = (double*)malloc(sizeof(double) * nx * ny * vars);
+  double* zUpRecvBuffer = (double*)malloc(sizeof(double) * nx * ny * vars);
+
+  double* zDownSendBuffer = (double*)malloc(sizeof(double) * nx * ny * vars);
+  double* zDownRecvBuffer = (double*)malloc(sizeof(double) * nx * ny * vars);
+#pragma sst stop_null_variable
+
+#pragma sst compute
+  for (int i = 0; i < ny * nz * vars; i++) {
+    xUpSendBuffer[i] = i;
+    xUpRecvBuffer[i] = i;
+    xDownSendBuffer[i] = i;
+    xDownRecvBuffer[i] = i;
+  }
+
+#pragma sst compute
   for (int i = 0; i < nx * nz * vars; i++) {
     yUpSendBuffer[i] = i;
     yUpRecvBuffer[i] = i;
@@ -237,12 +248,7 @@ int main(int argc, char* argv[]) {
     yDownRecvBuffer[i] = i;
   }
 
-  double* zUpSendBuffer = (double*)malloc(sizeof(double) * nx * ny * vars);
-  double* zUpRecvBuffer = (double*)malloc(sizeof(double) * nx * ny * vars);
-
-  double* zDownSendBuffer = (double*)malloc(sizeof(double) * nx * ny * vars);
-  double* zDownRecvBuffer = (double*)malloc(sizeof(double) * nx * ny * vars);
-
+#pragma sst compute
   for (int i = 0; i < nx * ny * vars; i++) {
     zUpSendBuffer[i] = i;
     zUpRecvBuffer[i] = i;
@@ -353,4 +359,5 @@ int main(int argc, char* argv[]) {
   }
 
   MPI_Finalize();
+  return 0;
 }

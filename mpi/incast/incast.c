@@ -19,6 +19,7 @@
 #include <string.h>
 #include <sys/time.h>
 
+#define sstmac_app_name incast
 int main(int argc, char* argv[]) {
   MPI_Init(&argc, &argv);
 
@@ -54,12 +55,15 @@ int main(int argc, char* argv[]) {
     printf("# Message Size:     %8d\n", msgsize);
   }
 
+#pragma sst null_variable replace nullptr
   double* recvBuffer = NULL;
+#pragma sst null_variable replace nullptr
   double* sendBuffer = NULL;
 
   if (me == (world - 1)) {
     recvBuffer = (double*)malloc(sizeof(double) * msgsize * (world - 1));
 
+#pragma sst compute
     for (int i = 0; i < (msgsize * (world - 1)); ++i) {
       recvBuffer[i] = 0.0;
     }
@@ -68,6 +72,7 @@ int main(int argc, char* argv[]) {
   if (me != (world - 1)) {
     sendBuffer = (double*)malloc(sizeof(double) * msgsize);
 
+#pragma sst compute
     for (int i = 0; i < msgsize; ++i) {
       sendBuffer[i] = (double)i;
     }
@@ -125,4 +130,5 @@ int main(int argc, char* argv[]) {
   }
 
   MPI_Finalize();
+  return 0;
 }

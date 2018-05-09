@@ -40,6 +40,7 @@ void compute(long sleep) {
   }
 }
 
+#define sstmac_app_name sweep3d
 int main(int argc, char* argv[]) {
   MPI_Init(&argc, &argv);
 
@@ -85,7 +86,7 @@ int main(int argc, char* argv[]) {
     } else if (strcmp("-vars", argv[i]) == 0) {
       vars = atoi(argv[i + 1]);
       i++;
-    } else if (strcmp("-kba", argv[i + 1]) == 0) {
+    } else if (strcmp("-kba", argv[i]) == 0) {
       kba = atoi(argv[i + 1]);
       i++;
     }
@@ -97,7 +98,7 @@ int main(int argc, char* argv[]) {
               "K-Blocking Factor must not be zero. Please specify -kba <value "
               "> 0>\n");
     }
-
+    MPI_Barrier(MPI_COMM_WORLD); //needed to force correct printing
     exit(-1);
   }
 
@@ -108,7 +109,7 @@ int main(int argc, char* argv[]) {
               "zero)\n",
               kba, nz, (nz % kba));
     }
-
+    MPI_Barrier(MPI_COMM_WORLD); //needed to force correct printing
     exit(-1);
   }
 
@@ -119,7 +120,7 @@ int main(int argc, char* argv[]) {
           "Error: processor decomposition (%d x %d) != number of ranks (%d)\n",
           pex, pey, world);
     }
-
+    MPI_Barrier(MPI_COMM_WORLD); //needed to force correct printing
     exit(-1);
   }
 
@@ -147,17 +148,21 @@ int main(int argc, char* argv[]) {
 
   MPI_Status status;
 
+#pragma sst start_null_variable replace nullptr
   double* xRecvBuffer = (double*)malloc(sizeof(double) * nx * kba * vars);
   double* xSendBuffer = (double*)malloc(sizeof(double) * nx * kba * vars);
 
   double* yRecvBuffer = (double*)malloc(sizeof(double) * ny * kba * vars);
   double* ySendBuffer = (double*)malloc(sizeof(double) * ny * kba * vars);
+#pragma sst stop_null_variable
 
+#pragma sst compute
   for (int i = 0; i < nx; ++i) {
     xRecvBuffer[i] = 0;
     xSendBuffer[i] = i;
   }
 
+#pragma sst compute
   for (int i = 0; i < ny; ++i) {
     yRecvBuffer[i] = 0;
     ySendBuffer[i] = i;
@@ -293,4 +298,5 @@ int main(int argc, char* argv[]) {
            (bytesXchng / 1024.0) / timeTaken);
   }
   MPI_Finalize();
+  return 0;
 }

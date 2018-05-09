@@ -40,6 +40,8 @@ int convert_position_to_rank(const int pX, const int pY, const int pZ,
   }
 }
 
+
+#define sstmac_app_name halo3d26
 int main(int argc, char* argv[]) {
   MPI_Init(&argc, &argv);
 
@@ -277,6 +279,7 @@ int main(int argc, char* argv[]) {
   MPI_Request* requests;
   requests = (MPI_Request*)malloc(sizeof(MPI_Request) * 52);
 
+#pragma sst start_null_variable replace nullptr
   double* edgeASendBuffer = (double*)malloc(sizeof(double) * nz * vars);
   double* edgeBSendBuffer = (double*)malloc(sizeof(double) * nx * vars);
   double* edgeCSendBuffer = (double*)malloc(sizeof(double) * nz * vars);
@@ -302,7 +305,9 @@ int main(int argc, char* argv[]) {
   double* edgeJRecvBuffer = (double*)malloc(sizeof(double) * nx * vars);
   double* edgeKRecvBuffer = (double*)malloc(sizeof(double) * nz * vars);
   double* edgeLRecvBuffer = (double*)malloc(sizeof(double) * nx * vars);
+#pragma sst stop_null_variable
 
+#pragma sst compute
   for (int i = 0; i < nz; ++i) {
     edgeASendBuffer[i] = (double)i;
     edgeARecvBuffer[i] = 0.0;
@@ -314,6 +319,7 @@ int main(int argc, char* argv[]) {
     edgeKRecvBuffer[i] = 0.0;
   }
 
+#pragma sst compute
   for (int i = 0; i < ny; ++i) {
     edgeESendBuffer[i] = (double)i;
     edgeERecvBuffer[i] = 0.0;
@@ -325,6 +331,7 @@ int main(int argc, char* argv[]) {
     edgeHRecvBuffer[i] = 0.0;
   }
 
+#pragma sst compute
   for (int i = 0; i < nx; ++i) {
     edgeBSendBuffer[i] = (double)i;
     edgeBRecvBuffer[i] = 0.0;
@@ -336,6 +343,7 @@ int main(int argc, char* argv[]) {
     edgeLRecvBuffer[i] = 0.0;
   }
 
+#pragma sst start_null_variable replace nullptr
   double* xFaceUpSendBuffer = (double*)malloc(sizeof(double) * ny * nz * vars);
   double* xFaceUpRecvBuffer = (double*)malloc(sizeof(double) * ny * nz * vars);
 
@@ -344,12 +352,6 @@ int main(int argc, char* argv[]) {
   double* xFaceDownRecvBuffer =
       (double*)malloc(sizeof(double) * ny * nz * vars);
 
-  for (int i = 0; i < ny * nz * vars; i++) {
-    xFaceUpSendBuffer[i] = i;
-    xFaceUpRecvBuffer[i] = i;
-    xFaceDownSendBuffer[i] = i;
-    xFaceDownRecvBuffer[i] = i;
-  }
 
   double* yFaceUpSendBuffer = (double*)malloc(sizeof(double) * nx * nz * vars);
   double* yFaceUpRecvBuffer = (double*)malloc(sizeof(double) * nx * nz * vars);
@@ -359,13 +361,6 @@ int main(int argc, char* argv[]) {
   double* yFaceDownRecvBuffer =
       (double*)malloc(sizeof(double) * nx * nz * vars);
 
-  for (int i = 0; i < nx * nz * vars; i++) {
-    yFaceUpSendBuffer[i] = i;
-    yFaceUpRecvBuffer[i] = i;
-    yFaceDownSendBuffer[i] = i;
-    yFaceDownRecvBuffer[i] = i;
-  }
-
   double* zFaceUpSendBuffer = (double*)malloc(sizeof(double) * nx * ny * vars);
   double* zFaceUpRecvBuffer = (double*)malloc(sizeof(double) * nx * ny * vars);
 
@@ -373,7 +368,25 @@ int main(int argc, char* argv[]) {
       (double*)malloc(sizeof(double) * nx * ny * vars);
   double* zFaceDownRecvBuffer =
       (double*)malloc(sizeof(double) * nx * ny * vars);
+#pragma sst stop_null_variable
 
+#pragma sst compute
+  for (int i = 0; i < ny * nz * vars; i++) {
+    xFaceUpSendBuffer[i] = i;
+    xFaceUpRecvBuffer[i] = i;
+    xFaceDownSendBuffer[i] = i;
+    xFaceDownRecvBuffer[i] = i;
+  }
+
+#pragma sst compute
+  for (int i = 0; i < nx * nz * vars; i++) {
+    yFaceUpSendBuffer[i] = i;
+    yFaceUpRecvBuffer[i] = i;
+    yFaceDownSendBuffer[i] = i;
+    yFaceDownRecvBuffer[i] = i;
+  }
+
+#pragma sst compute
   for (int i = 0; i < nx * ny * vars; i++) {
     zFaceUpSendBuffer[i] = i;
     zFaceUpRecvBuffer[i] = i;
@@ -562,4 +575,5 @@ int main(int argc, char* argv[]) {
   }
 
   MPI_Finalize();
+  return 0;
 }
