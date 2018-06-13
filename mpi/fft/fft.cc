@@ -36,10 +36,10 @@ std::ostream &operator<<(std::ostream &os, Input const &in) {
   os << "\tcols: " << in.nproc / in.rows << "\n";
   os << "\tns_per_el: " << in.ns_per_el << "\n";
 
-  os << "\tfft forward costs: [" << in.fwd_fft_cost[0]/1e9 << ", "
-     << in.fwd_fft_cost[1]/1e9 << ", " << in.fwd_fft_cost[2]/1e9 << "]s\n";
-  os << "\tfft backwards costs: [" << in.bwd_fft_cost[0]/1e9 << ", "
-     << in.bwd_fft_cost[1]/1e9 << ", " << in.bwd_fft_cost[2]/1e9 << "]s\n";
+  os << "\tfft forward costs: [" << in.fwd_fft_cost[0] / 1e9 << ", "
+     << in.fwd_fft_cost[1] / 1e9 << ", " << in.fwd_fft_cost[2] / 1e9 << "]s\n";
+  os << "\tfft backwards costs: [" << in.bwd_fft_cost[0] / 1e9 << ", "
+     << in.bwd_fft_cost[1] / 1e9 << ", " << in.bwd_fft_cost[2] / 1e9 << "]s\n";
 
   os << "\tnproc: " << in.nproc;
 
@@ -62,10 +62,11 @@ struct MessageWrapper {
 
   std::vector<int> group_ranks;
 
-  // #pragma sst null_type sstmac::unique_ptr get
-  std::unique_ptr<char[]> send_buf;
-  // #pragma sst null_type sstmac::unique_ptr get
-  std::unique_ptr<char[]> recv_buf;
+#pragma sst null_type sstmac::vector push_back data
+  std::vector<std::complex<double>> send_buf;
+
+#pragma sst null_type sstmac::vector push_back data
+  std::vector<std::complex<double>> recv_buf;
 };
 
 Input parse_input(int, char **);
@@ -109,24 +110,38 @@ int main(int argc, char **argv) {
 
   // TODO Ask Jer if this should be doubles or complexes
   auto a2a_fwd = [](MessageWrapper &mw) {
-     if (MPI_SUCCESS !=
-         MPI_Alltoallv(mw.send_buf.get(), mw.send_counts_fwd.data(),
-                       mw.send_dsp_fwd.data(), MPI_DOUBLE, mw.recv_buf.get(),
-                       mw.recv_counts_fwd.data(), mw.recv_dsp_fwd.data(),
-                       MPI_DOUBLE, mw.comm)) {
-       std::cout << "MPI_Alltoallv forward failed with an error." << std::endl;
-       throw;
-     }
+    // if (MPI_SUCCESS !=
+    //     MPI_Alltoallv(mw.send_buf.get(), mw.send_counts_fwd.data(),
+    //                   mw.send_dsp_fwd.data(), MPI_DOUBLE, mw.recv_buf.get(),
+    //                   mw.recv_counts_fwd.data(), mw.recv_dsp_fwd.data(),
+    //                   MPI_DOUBLE, mw.comm)) {
+    //   std::cout << "MPI_Alltoallv forward failed with an error." <<
+    //   std::endl; throw;
+    // }
+    auto message_size = 5;
+    if (MPI_SUCCESS != MPI_Alltoall(mw.send_buf.data(), message_size,
+                                    MPI_DOUBLE, mw.recv_buf.data(),
+                                    message_size, MPI_DOUBLE, mw.comm)) {
+      std::cout << "MPI_Alltoall forward failed with an error." << std::endl;
+      throw;
+    }
   };
 
   // TODO Ask Jer if this should be doubles or complexes
   auto a2a_bwd = [](MessageWrapper &mw) {
-    if (MPI_SUCCESS !=
-        MPI_Alltoallv(mw.send_buf.get(), mw.send_counts_bwd.data(),
-                      mw.send_dsp_bwd.data(), MPI_DOUBLE, mw.recv_buf.get(),
-                      mw.recv_counts_bwd.data(), mw.recv_dsp_bwd.data(),
-                      MPI_DOUBLE, mw.comm)) {
-      std::cout << "MPI_Alltoallv backwards failed with error." << std::endl;
+    // if (MPI_SUCCESS !=
+    //     MPI_Alltoallv(mw.send_buf.get(), mw.send_counts_bwd.data(),
+    //                   mw.send_dsp_bwd.data(), MPI_DOUBLE, mw.recv_buf.get(),
+    //                   mw.recv_counts_bwd.data(), mw.recv_dsp_bwd.data(),
+    //                   MPI_DOUBLE, mw.comm)) {
+    //   std::cout << "MPI_Alltoallv backwards failed with error." << std::endl;
+    //   throw;
+    // }
+    auto message_size = 5;
+    if (MPI_SUCCESS != MPI_Alltoall(mw.send_buf.data(), message_size,
+                                    MPI_DOUBLE, mw.recv_buf.data(),
+                                    message_size, MPI_DOUBLE, mw.comm)) {
+      std::cout << "MPI_Alltoall forward failed with an error." << std::endl;
       throw;
     }
   };
@@ -206,7 +221,7 @@ void init_input(Input &in) {
   in.bwd_fft_cost[0] *= cost;
   in.bwd_fft_cost[1] *= cost;
   // Dunno why it's times 2. I just copied from sst-elements ember
-  in.bwd_fft_cost[2] *= 2 * cost;  
+  in.bwd_fft_cost[2] *= 2 * cost;
 }
 
 std::pair<MessageWrapper, MessageWrapper> setup_message_wrappers(
@@ -344,13 +359,17 @@ std::pair<MessageWrapper, MessageWrapper> setup_message_wrappers(
 
   const auto max = std::max({size_x, size_y, size_z});
 
-  const auto COMPLEX = sizeof(std::complex<double>);
-  // const auto COMPLEX = sizeof(MPI_DOUBLE);
-  cols_mess.send_buf = std::unique_ptr<char[]>(new char[max * COMPLEX]);
-  cols_mess.recv_buf = std::unique_ptr<char[]>(new char[max * COMPLEX]);
+  // cols_mess.send_buf = std::unique_ptr<char[]>(new char[max * COMPLEX]);
+  // cols_mess.recv_buf = std::unique_ptr<char[]>(new char[max * COMPLEX]);
 
-  rows_mess.send_buf = std::unique_ptr<char[]>(new char[max * COMPLEX]);
-  rows_mess.recv_buf = std::unique_ptr<char[]>(new char[max * COMPLEX]);
+  // rows_mess.send_buf = std::unique_ptr<char[]>(new char[max * COMPLEX]);
+  // rows_mess.recv_buf = std::unique_ptr<char[]>(new char[max * COMPLEX]);
+
+  cols_mess.send_buf.resize(max);
+  cols_mess.recv_buf.resize(max);
+
+  rows_mess.send_buf.resize(max);
+  rows_mess.recv_buf.resize(max);
 
   // Make the group communicators
   MPI_Group group_all;
