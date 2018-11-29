@@ -23,7 +23,7 @@ void generate_scramble(int seed, MPI_Comm incomm, MPI_Comm* outcomm)
   }
 }
 
-void print_hostnames(MPI_Comm incomm)
+void print_hostnames(const char* name, MPI_Comm incomm)
 {
   char my_host[256];
   int size; MPI_Comm_size(incomm, &size);
@@ -36,6 +36,7 @@ void print_hostnames(MPI_Comm incomm)
                all_hosts.data(), 256, MPI_CHAR, 
                root, incomm);
     std::stringstream sstr;
+    sstr << name << "\n";
     for (int rank=0; rank < size; ++rank){
       const char* name = &all_hosts[256*rank];
       sstr << "Rank " << rank << ": " << name << "\n";

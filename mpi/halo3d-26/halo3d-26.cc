@@ -173,6 +173,7 @@ int main(int argc, char* argv[]) {
     } else if (strcmp(argv[i], "-scramble") == 0){
       int scrambler = atol(argv[i+1]);
       generate_scramble(scrambler, MPI_COMM_WORLD, &halo_comm);
+      MPI_Comm_rank(halo_comm, &me);
       ++i; 
     } else {
       if (0 == me) {
@@ -193,6 +194,9 @@ int main(int argc, char* argv[]) {
 
     exit(-1);
   }
+
+  print_hostnames("MPI_COMM_WORLD", MPI_COMM_WORLD);
+  print_hostnames("Sweep Communicator", halo_comm);
 
   MPI_Barrier(MPI_COMM_WORLD);
 

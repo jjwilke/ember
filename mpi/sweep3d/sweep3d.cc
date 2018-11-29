@@ -96,9 +96,13 @@ int main(int argc, char* argv[]) {
     }  else if (strcmp(argv[i], "-scramble") == 0){
       int scrambler = atol(argv[i+1]);
       generate_scramble(scrambler, MPI_COMM_WORLD, &sweep_comm);
+      MPI_Comm_rank(sweep_comm, &me);
       ++i; 
     }
   }
+
+  print_hostnames("MPI_COMM_WORLD", MPI_COMM_WORLD);
+  print_hostnames("Sweep Communicator", sweep_comm);
 
   if (kba == 0) {
     if (me == 0) {

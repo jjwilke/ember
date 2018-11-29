@@ -42,6 +42,7 @@ int main(int argc, char **argv)
     MPI_Abort(MPI_COMM_WORLD, 1);
   }
 
+
   int dims[3] = {0, 0, 0};
   dims[MP_X] = atoi(argv[1]); // nx
   dims[MP_Y] = atoi(argv[2]); // ny
@@ -55,7 +56,11 @@ int main(int argc, char **argv)
   if (argc == 9){
     int seed = atoi(argv[8]);
     generate_scramble(seed, MPI_COMM_WORLD, &comm);
+    MPI_Comm_rank(comm, &myrank);
   }
+
+  print_hostnames("MPI_COMM_WORLD", MPI_COMM_WORLD);
+  print_hostnames("Subcom Communicator", comm);
   
   if(dims[MP_X] * dims[MP_Y] * dims[MP_Z] != numranks) {
     if(!myrank) {
