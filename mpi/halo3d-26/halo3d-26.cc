@@ -20,6 +20,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <time.h>
+#include <ember-util.h>
 
 void get_position(const int rank, const int pex, const int pey, const int pez,
                   int* myX, int* myY, int* myZ) {
@@ -45,13 +46,18 @@ int convert_position_to_rank(const int pX, const int pY, const int pZ,
 int main(int argc, char* argv[]) {
   MPI_Init(&argc, &argv);
 
-  int me = -1;
-  int world = -1;
+  int world_me = -1;
+  int world_size = -1;
 
-  MPI_Comm_rank(MPI_COMM_WORLD, &me);
-  MPI_Comm_size(MPI_COMM_WORLD, &world);
 
-  int pex = world;
+  MPI_Comm_rank(MPI_COMM_WORLD, &world_me);
+  MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+  int size = world_size;
+  int me = world_me;
+
+  MPI_Comm halo_comm = MPI_COMM_WORLD;
+
+  int pex = size;
   int pey = 1;
   int pez = 1;
 
@@ -164,6 +170,10 @@ int main(int argc, char* argv[]) {
 
       sleep = atol(argv[i + 1]);
       ++i;
+    } else if (strcmp(argv[i], "-scramble") == 0){
+      int scrambler = atol(argv[i+1]);
+      generate_scramble(scrambler, MPI_COMM_WORLD, &halo_comm);
+      ++i; 
     } else {
       if (0 == me) {
         fprintf(stderr, "Unknown option: %s\n", argv[i]);
@@ -175,10 +185,10 @@ int main(int argc, char* argv[]) {
 
   MPI_Barrier(MPI_COMM_WORLD);
 
-  if ((pex * pey * pez) != world) {
+  if ((pex * pey * pez) != size) {
     if (0 == me) {
       fprintf(stderr, "Error: rank grid does not equal number of ranks.\n");
-      fprintf(stderr, "%7d x %7d x %7d != %7d\n", pex, pey, pez, world);
+      fprintf(stderr, "%7d x %7d x %7d != %7d\n", pex, pey, pez, size);
     }
 
     exit(-1);
@@ -415,128 +425,128 @@ int main(int argc, char* argv[]) {
 
     if (xFaceUp > -1) {
       MPI_Irecv(xFaceUpRecvBuffer, ny * nz * vars, MPI_DOUBLE, xFaceUp, 1000,
-                MPI_COMM_WORLD, &requests[requestcount++]);
+                halo_comm, &requests[requestcount++]);
       MPI_Isend(xFaceUpSendBuffer, ny * nz * vars, MPI_DOUBLE, xFaceUp, 1000,
-                MPI_COMM_WORLD, &requests[requestcount++]);
+                halo_comm, &requests[requestcount++]);
     }
 
     if (xFaceDown > -1) {
       MPI_Irecv(xFaceDownRecvBuffer, ny * nz * vars, MPI_DOUBLE, xFaceDown,
-                1000, MPI_COMM_WORLD, &requests[requestcount++]);
+                1000, halo_comm, &requests[requestcount++]);
       MPI_Isend(xFaceDownSendBuffer, ny * nz * vars, MPI_DOUBLE, xFaceDown,
-                1000, MPI_COMM_WORLD, &requests[requestcount++]);
+                1000, halo_comm, &requests[requestcount++]);
     }
 
     if (yFaceUp > -1) {
       MPI_Irecv(yFaceUpRecvBuffer, nx * nz * vars, MPI_DOUBLE, yFaceUp, 2000,
-                MPI_COMM_WORLD, &requests[requestcount++]);
+                halo_comm, &requests[requestcount++]);
       MPI_Isend(yFaceUpSendBuffer, nx * nz * vars, MPI_DOUBLE, yFaceUp, 2000,
-                MPI_COMM_WORLD, &requests[requestcount++]);
+                halo_comm, &requests[requestcount++]);
     }
 
     if (yFaceDown > -1) {
       MPI_Irecv(yFaceDownRecvBuffer, nx * nz * vars, MPI_DOUBLE, yFaceDown,
-                2000, MPI_COMM_WORLD, &requests[requestcount++]);
+                2000, halo_comm, &requests[requestcount++]);
       MPI_Isend(yFaceDownSendBuffer, nx * nz * vars, MPI_DOUBLE, yFaceDown,
-                2000, MPI_COMM_WORLD, &requests[requestcount++]);
+                2000, halo_comm, &requests[requestcount++]);
     }
 
     if (zFaceUp > -1) {
       MPI_Irecv(zFaceUpRecvBuffer, nx * ny * vars, MPI_DOUBLE, zFaceUp, 4000,
-                MPI_COMM_WORLD, &requests[requestcount++]);
+                halo_comm, &requests[requestcount++]);
       MPI_Isend(zFaceUpSendBuffer, nx * ny * vars, MPI_DOUBLE, zFaceUp, 4000,
-                MPI_COMM_WORLD, &requests[requestcount++]);
+                halo_comm, &requests[requestcount++]);
     }
 
     if (zFaceDown > -1) {
       MPI_Irecv(zFaceDownRecvBuffer, nx * ny * vars, MPI_DOUBLE, zFaceDown,
-                4000, MPI_COMM_WORLD, &requests[requestcount++]);
+                4000, halo_comm, &requests[requestcount++]);
       MPI_Isend(zFaceDownSendBuffer, nx * ny * vars, MPI_DOUBLE, zFaceDown,
-                4000, MPI_COMM_WORLD, &requests[requestcount++]);
+                4000, halo_comm, &requests[requestcount++]);
     }
 
     if (edgeA > -1) {
       MPI_Irecv(edgeARecvBuffer, nz * vars, MPI_DOUBLE, edgeA, 8000,
-                MPI_COMM_WORLD, &requests[requestcount++]);
+                halo_comm, &requests[requestcount++]);
       MPI_Isend(edgeASendBuffer, nz * vars, MPI_DOUBLE, edgeA, 8000,
-                MPI_COMM_WORLD, &requests[requestcount++]);
+                halo_comm, &requests[requestcount++]);
     }
 
     if (edgeB > -1) {
       MPI_Irecv(edgeBRecvBuffer, nx * vars, MPI_DOUBLE, edgeB, 8000,
-                MPI_COMM_WORLD, &requests[requestcount++]);
+                halo_comm, &requests[requestcount++]);
       MPI_Isend(edgeBSendBuffer, nx * vars, MPI_DOUBLE, edgeB, 8000,
-                MPI_COMM_WORLD, &requests[requestcount++]);
+                halo_comm, &requests[requestcount++]);
     }
 
     if (edgeC > -1) {
       MPI_Irecv(edgeCRecvBuffer, nz * vars, MPI_DOUBLE, edgeC, 8000,
-                MPI_COMM_WORLD, &requests[requestcount++]);
+                halo_comm, &requests[requestcount++]);
       MPI_Isend(edgeCSendBuffer, nz * vars, MPI_DOUBLE, edgeC, 8000,
-                MPI_COMM_WORLD, &requests[requestcount++]);
+                halo_comm, &requests[requestcount++]);
     }
 
     if (edgeD > -1) {
       MPI_Irecv(edgeDRecvBuffer, nx * vars, MPI_DOUBLE, edgeD, 8000,
-                MPI_COMM_WORLD, &requests[requestcount++]);
+                halo_comm, &requests[requestcount++]);
       MPI_Isend(edgeDSendBuffer, nx * vars, MPI_DOUBLE, edgeD, 8000,
-                MPI_COMM_WORLD, &requests[requestcount++]);
+                halo_comm, &requests[requestcount++]);
     }
 
     if (edgeE > -1) {
       MPI_Irecv(edgeERecvBuffer, ny * vars, MPI_DOUBLE, edgeE, 8000,
-                MPI_COMM_WORLD, &requests[requestcount++]);
+                halo_comm, &requests[requestcount++]);
       MPI_Isend(edgeESendBuffer, ny * vars, MPI_DOUBLE, edgeE, 8000,
-                MPI_COMM_WORLD, &requests[requestcount++]);
+                halo_comm, &requests[requestcount++]);
     }
 
     if (edgeF > -1) {
       MPI_Irecv(edgeFRecvBuffer, ny * vars, MPI_DOUBLE, edgeF, 8000,
-                MPI_COMM_WORLD, &requests[requestcount++]);
+                halo_comm, &requests[requestcount++]);
       MPI_Isend(edgeFSendBuffer, ny * vars, MPI_DOUBLE, edgeF, 8000,
-                MPI_COMM_WORLD, &requests[requestcount++]);
+                halo_comm, &requests[requestcount++]);
     }
 
     if (edgeG > -1) {
       MPI_Irecv(edgeARecvBuffer, ny * vars, MPI_DOUBLE, edgeG, 8000,
-                MPI_COMM_WORLD, &requests[requestcount++]);
+                halo_comm, &requests[requestcount++]);
       MPI_Isend(edgeASendBuffer, ny * vars, MPI_DOUBLE, edgeG, 8000,
-                MPI_COMM_WORLD, &requests[requestcount++]);
+                halo_comm, &requests[requestcount++]);
     }
 
     if (edgeH > -1) {
       MPI_Irecv(edgeARecvBuffer, ny * vars, MPI_DOUBLE, edgeH, 8000,
-                MPI_COMM_WORLD, &requests[requestcount++]);
+                halo_comm, &requests[requestcount++]);
       MPI_Isend(edgeASendBuffer, ny * vars, MPI_DOUBLE, edgeH, 8000,
-                MPI_COMM_WORLD, &requests[requestcount++]);
+                halo_comm, &requests[requestcount++]);
     }
 
     if (edgeI > -1) {
       MPI_Irecv(edgeIRecvBuffer, nz * vars, MPI_DOUBLE, edgeI, 8000,
-                MPI_COMM_WORLD, &requests[requestcount++]);
+                halo_comm, &requests[requestcount++]);
       MPI_Isend(edgeISendBuffer, nz * vars, MPI_DOUBLE, edgeI, 8000,
-                MPI_COMM_WORLD, &requests[requestcount++]);
+                halo_comm, &requests[requestcount++]);
     }
 
     if (edgeJ > -1) {
       MPI_Irecv(edgeJRecvBuffer, nx * vars, MPI_DOUBLE, edgeJ, 8000,
-                MPI_COMM_WORLD, &requests[requestcount++]);
+                halo_comm, &requests[requestcount++]);
       MPI_Isend(edgeJSendBuffer, nx * vars, MPI_DOUBLE, edgeJ, 8000,
-                MPI_COMM_WORLD, &requests[requestcount++]);
+                halo_comm, &requests[requestcount++]);
     }
 
     if (edgeK > -1) {
       MPI_Irecv(edgeKRecvBuffer, nz * vars, MPI_DOUBLE, edgeK, 8000,
-                MPI_COMM_WORLD, &requests[requestcount++]);
+                halo_comm, &requests[requestcount++]);
       MPI_Isend(edgeKSendBuffer, nz * vars, MPI_DOUBLE, edgeK, 8000,
-                MPI_COMM_WORLD, &requests[requestcount++]);
+                halo_comm, &requests[requestcount++]);
     }
 
     if (edgeL > -1) {
       MPI_Irecv(edgeLRecvBuffer, nx * vars, MPI_DOUBLE, edgeL, 8000,
-                MPI_COMM_WORLD, &requests[requestcount++]);
+                halo_comm, &requests[requestcount++]);
       MPI_Isend(edgeLSendBuffer, nx * vars, MPI_DOUBLE, edgeL, 8000,
-                MPI_COMM_WORLD, &requests[requestcount++]);
+                halo_comm, &requests[requestcount++]);
     }
 
     MPI_Waitall(requestcount, requests, status);

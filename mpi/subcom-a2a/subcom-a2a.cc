@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <ember-util.h>
 #include "mpi.h"
 
 #define MP_X 0
@@ -15,23 +16,27 @@
 #define sstmac_app_name subcom_a2a
 int main(int argc, char **argv)
 {
-  int myrank, numranks;
+  int world_rank, numranks;
   MPI_Init(&argc,&argv);
 #if WRITE_OTF2_TRACE
   SCOREP_RECORDING_OFF();
 #endif
-  MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+  MPI_Comm_rank(MPI_COMM_WORLD,&world_rank);
   MPI_Comm_size(MPI_COMM_WORLD,&numranks);
 
-  if(argc != 8) {
+  int myrank = world_rank;
+  MPI_Comm comm = MPI_COMM_WORLD;
+
+  if(argc != 8 && argc != 9) {
     if(!myrank)
       printf("\nThis is the subcom-a2a communication proxy. The correct usage is:\n"
-             "%s nx ny nz msg_size_x msg_size_y msg_size_z MAX_ITER\n\n"
+             "%s nx ny nz msg_size_x msg_size_y msg_size_z MAX_ITER <optional:seed> \n\n"
              "    nx, ny, nz: layout of process grid in 3D\n"
              "    msg_size_x: size of per pair all to all messages along X dimension, 0 to skip (in bytes)\n"
              "    msg_size_y: size of per pair all to all messages along Y dimension, 0 to skip  (in bytes)\n"
              "    msg_size_z: size of per pair all to all messages along Z dimension, 0 to skip  (in bytes)\n"
-             "    MAX_ITER: how many iters to run\n\n",
+             "    MAX_ITER: how many iters to run\n"
+             "    seed: a seed for randomizing placements\n\n",
              argv[0]);
     MPI_Barrier(MPI_COMM_WORLD);
     MPI_Abort(MPI_COMM_WORLD, 1);
@@ -46,6 +51,11 @@ int main(int argc, char **argv)
   int msg_size_y = atoi(argv[5]);
   int msg_size_z = atoi(argv[6]);
   int MAX_ITER = atoi(argv[7]);
+
+  if (argc == 9){
+    int seed = atoi(argv[8]);
+    generate_scramble(seed, MPI_COMM_WORLD, &comm);
+  }
   
   if(dims[MP_X] * dims[MP_Y] * dims[MP_Z] != numranks) {
     if(!myrank) {
@@ -78,13 +88,13 @@ int main(int argc, char **argv)
   //create subcommunicators
   MPI_Comm X_comm, Y_comm, Z_comm;
   if(!skip[MP_X]) {
-    MPI_Comm_split(MPI_COMM_WORLD, myZcoord * dims[MP_Y] + myYcoord, myXcoord, &X_comm);
+    MPI_Comm_split(comm, myZcoord * dims[MP_Y] + myYcoord, myXcoord, &X_comm);
   }
   if(!skip[MP_Y]) {
-    MPI_Comm_split(MPI_COMM_WORLD, myZcoord * dims[MP_X] + myXcoord, myYcoord, &Y_comm);
+    MPI_Comm_split(comm, myZcoord * dims[MP_X] + myXcoord, myYcoord, &Y_comm);
   }
   if(!skip[MP_Z]) {
-    MPI_Comm_split(MPI_COMM_WORLD, myYcoord * dims[MP_X] + myXcoord, myZcoord, &Z_comm);
+    MPI_Comm_split(comm, myYcoord * dims[MP_X] + myXcoord, myZcoord, &Z_comm);
   }
 
   double startTime, stopTime;

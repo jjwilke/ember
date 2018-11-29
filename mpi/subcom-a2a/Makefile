@@ -2,14 +2,13 @@ CXX=mpicxx
 ifeq ($(SSTMAC_SKELETONIZE),1)
 CXX=sst++
 endif
-OPTS	= -O3 
-INCS	= 
-SUFFIX	= .x
+CXXFLAGS= -O3 
+CPPFLAGS= -I../util
 
-all: subcom-a2a$(SUFFIX) 
+all: subcom-a2a
 
-subcom-a2a$(SUFFIX) : subcom-a2a.cc
-	$(CXX) $(OPTS) $(INCS) -o $@ $<
+subcom-a2a : subcom-a2a.cc
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -o $@ $<
 
 clean:
 	rm -f subcom-a2a$(SUFFIX)

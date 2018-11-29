@@ -20,6 +20,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <time.h>
+#include <ember-util.h>
 
 void get_position(const int rank, const int pex, const int pey, int* myX,
                   int* myY) {
@@ -44,11 +45,14 @@ void compute(long sleep) {
 int main(int argc, char* argv[]) {
   MPI_Init(&argc, &argv);
 
-  int me = -1;
-  int world = -1;
+  int world_me = -1;
+  int world_size = -1;
 
-  MPI_Comm_rank(MPI_COMM_WORLD, &me);
-  MPI_Comm_size(MPI_COMM_WORLD, &world);
+  MPI_Comm_rank(MPI_COMM_WORLD, &world_me);
+  MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+  int me = world_me;
+  int size = world_size;
+  MPI_Comm sweep_comm = MPI_COMM_WORLD;
 
   int pex = -1;
   int pey = -1;
@@ -89,6 +93,10 @@ int main(int argc, char* argv[]) {
     } else if (strcmp("-kba", argv[i]) == 0) {
       kba = atoi(argv[i + 1]);
       i++;
+    }  else if (strcmp(argv[i], "-scramble") == 0){
+      int scrambler = atol(argv[i+1]);
+      generate_scramble(scrambler, MPI_COMM_WORLD, &sweep_comm);
+      ++i; 
     }
   }
 
@@ -113,12 +121,12 @@ int main(int argc, char* argv[]) {
     exit(-1);
   }
 
-  if ((pex * pey) != world) {
+  if ((pex * pey) != size) {
     if (0 == me) {
       fprintf(
           stderr,
           "Error: processor decomposition (%d x %d) != number of ranks (%d)\n",
-          pex, pey, world);
+          pex, pey, size);
     }
     MPI_Barrier(MPI_COMM_WORLD); //needed to force correct printing
     exit(-1);
@@ -181,24 +189,24 @@ int main(int argc, char* argv[]) {
     for (int k = 0; k < nz; k += kba) {
       if (xDown > -1) {
         MPI_Recv(xRecvBuffer, (nx * kba * vars), MPI_DOUBLE, xDown, 1000,
-                 MPI_COMM_WORLD, &status);
+                 sweep_comm, &status);
       }
 
       if (yDown > -1) {
         MPI_Recv(yRecvBuffer, (ny * kba * vars), MPI_DOUBLE, yDown, 1000,
-                 MPI_COMM_WORLD, &status);
+                 sweep_comm, &status);
       }
 
       compute(sleep);
 
       if (xUp > -1) {
         MPI_Send(xSendBuffer, (nx * kba * vars), MPI_DOUBLE, xUp, 1000,
-                 MPI_COMM_WORLD);
+                 sweep_comm);
       }
 
       if (yUp > -1) {
         MPI_Send(ySendBuffer, (nx * kba * vars), MPI_DOUBLE, yUp, 1000,
-                 MPI_COMM_WORLD);
+                 sweep_comm);
       }
     }
 
@@ -206,24 +214,24 @@ int main(int argc, char* argv[]) {
     for (int k = 0; k < nz; k += kba) {
       if (xUp > -1) {
         MPI_Recv(xRecvBuffer, (nx * kba * vars), MPI_DOUBLE, xUp, 2000,
-                 MPI_COMM_WORLD, &status);
+                 sweep_comm, &status);
       }
 
       if (yDown > -1) {
         MPI_Recv(yRecvBuffer, (ny * kba * vars), MPI_DOUBLE, yDown, 2000,
-                 MPI_COMM_WORLD, &status);
+                 sweep_comm, &status);
       }
 
       compute(sleep);
 
       if (xDown > -1) {
         MPI_Send(xSendBuffer, (nx * kba * vars), MPI_DOUBLE, xDown, 2000,
-                 MPI_COMM_WORLD);
+                 sweep_comm);
       }
 
       if (yUp > -1) {
         MPI_Send(ySendBuffer, (nx * kba * vars), MPI_DOUBLE, yUp, 2000,
-                 MPI_COMM_WORLD);
+                 sweep_comm);
       }
     }
 
@@ -231,24 +239,24 @@ int main(int argc, char* argv[]) {
     for (int k = 0; k < nz; k += kba) {
       if (xUp > -1) {
         MPI_Recv(xRecvBuffer, (nx * kba * vars), MPI_DOUBLE, xUp, 3000,
-                 MPI_COMM_WORLD, &status);
+                 sweep_comm, &status);
       }
 
       if (yUp > -1) {
         MPI_Recv(yRecvBuffer, (ny * kba * vars), MPI_DOUBLE, yUp, 3000,
-                 MPI_COMM_WORLD, &status);
+                 sweep_comm, &status);
       }
 
       compute(sleep);
 
       if (xDown > -1) {
         MPI_Send(xSendBuffer, (nx * kba * vars), MPI_DOUBLE, xDown, 3000,
-                 MPI_COMM_WORLD);
+                 sweep_comm);
       }
 
       if (yDown > -1) {
         MPI_Send(ySendBuffer, (nx * kba * vars), MPI_DOUBLE, yDown, 3000,
-                 MPI_COMM_WORLD);
+                 sweep_comm);
       }
     }
 
@@ -256,24 +264,24 @@ int main(int argc, char* argv[]) {
     for (int k = 0; k < nz; k += kba) {
       if (xDown > -1) {
         MPI_Recv(xRecvBuffer, (nx * kba * vars), MPI_DOUBLE, xDown, 4000,
-                 MPI_COMM_WORLD, &status);
+                 sweep_comm, &status);
       }
 
       if (yUp > -1) {
         MPI_Recv(yRecvBuffer, (ny * kba * vars), MPI_DOUBLE, yUp, 4000,
-                 MPI_COMM_WORLD, &status);
+                 sweep_comm, &status);
       }
 
       compute(sleep);
 
       if (xUp > -1) {
         MPI_Send(xSendBuffer, (nx * kba * vars), MPI_DOUBLE, xUp, 4000,
-                 MPI_COMM_WORLD);
+                 sweep_comm);
       }
 
       if (yDown > -1) {
         MPI_Send(ySendBuffer, (nx * kba * vars), MPI_DOUBLE, yDown, 4000,
-                 MPI_COMM_WORLD);
+                 sweep_comm);
       }
     }
   }

@@ -1,13 +1,14 @@
 
-CC=mpicc
+CXX=mpicxx
 ifeq ($(SSTMAC_SKELETONIZE),1)
-CC=sstcc
+CXX=sst++
 endif
-CFLAGS=-O3 -std=c99
+CXXFLAGS=-O3 
+CPPFLAGS=-I../util
 LIBS=
 
-halo3d-26: halo3d-26.c
-	$(CC) $(CFLAGS) -o $@ $< $(LIBS)
+halo3d-26: halo3d-26.cc
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ $< $(LIBS)
 
 clean:
 	rm halo3d-26
