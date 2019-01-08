@@ -10,7 +10,7 @@
 struct uniorm_int_distribution {
   template <typename Gen>
   int operator()(Gen& g) {
-    auto range = b + 1 - a;
+    auto range = b - a;
     auto recompute_size = g.max() - g.max() % range;
     while (true) {
       int value = g();
@@ -44,7 +44,7 @@ std::array<unsigned long, 4> generate_scramble(std::uint_fast32_t seed,
 
   // std::uniform_int_distribution<int> int_dist(0, size-1);
   uniorm_int_distribution int_dist{0u,
-                                   static_cast<std::uint_fast32_t>(size - 1)};
+                                   static_cast<std::uint_fast32_t>(size)};
   int color = 0;  // all the same color - just resort
   int key = int_dist(gen);
   MPI_Comm_split(incomm, color, key, outcomm);
