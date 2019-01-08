@@ -57,20 +57,27 @@ int main(int argc, char* argv[]) {
 
   MPI_Barrier(MPI_COMM_WORLD);
   std::array<char, 256> scram_host = print_hostnames("Scrambled Comm", scramble_comm);
-
-  std::vector<char> org_host(256 * world_size);
-  std::vector<char> new_host(256 * world_size);
-  std::vector<int> new_rank(world_size);
-
-  MPI_Allgather(world_host.data(), 256, MPI_CHAR, org_host.data(), 256,
-                MPI_CHAR, MPI_COMM_WORLD);
-  MPI_Allgather(scram_host.data(), 256, MPI_CHAR, new_host.data(), 256,
-                MPI_CHAR, scramble_comm);
-  MPI_Allgather(&me, 1, MPI_INT, new_rank.data(), 1, MPI_INT, MPI_COMM_WORLD);
-
   MPI_Barrier(MPI_COMM_WORLD);
 
-  if (world_me == 0) {
+  // Check Gather
+  if(world_me == 0){
+    std::vector<char> org_host(256 * world_size);
+    std::vector<char> new_host(256 * world_size);
+    std::vector<int> new_rank(world_size);
+
+#pragma sst keep
+    MPI_Gather(&me, 1, MPI_INT, new_rank.data(), 1, MPI_INT, 0, MPI_COMM_WORLD);
+#pragma sst keep
+    MPI_Gather(world_host.data(), 256, MPI_CHAR, org_host.data(), 256,
+                MPI_CHAR, 0, MPI_COMM_WORLD);
+
+    // Deal with scram stuff since apparently allgather is broken for me in sst
+#pragma sst keep
+    MPI_Bcast(&me, 1, MPI_INT, 0, MPI_COMM_WORLD);
+#pragma sst keep
+    MPI_Gather(scram_host.data(), 256, MPI_CHAR, new_host.data(), 256,
+                MPI_CHAR, me, scramble_comm);
+
     std::cout
         << "(COMM_WORLD_RANK -> SCRAM_RANK), (COMM_WORLD_HOST -> SCRAM_HOST)\n";
     for (auto i = 0; i < world_size; ++i) {
@@ -80,37 +87,18 @@ int main(int argc, char* argv[]) {
       std::cout << "(" << i << " -> " << new_rank[i] << "), (" << old_name
                 << " -> " << new_name << ")\n";
     }
-  } 
-
-
-  // Check Gather
-  if(world_me == 0){
-    MPI_Gather(&me, 1, MPI_INT, new_rank.data(), 1, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Gather(world_host.data(), 256, MPI_CHAR, org_host.data(), 256,
-                MPI_CHAR, 0, MPI_COMM_WORLD);
-
-    // Deal with scram stuff since apparently allgather is broken for me in sst
-    MPI_Bcast(&me, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Gather(scram_host.data(), 256, MPI_CHAR, new_host.data(), 256,
-                MPI_CHAR, me, scramble_comm);
-
-    std::cout
-        << "\n\nGather Test\n\n(COMM_WORLD_RANK -> SCRAM_RANK), (COMM_WORLD_HOST -> SCRAM_HOST)\n";
-    for (auto i = 0; i < world_size; ++i) {
-      auto old_name = std::string(&org_host[256 * i]);
-      auto new_name = std::string(&new_host[256 * i]);
-
-      std::cout << "(" << i << " -> " << new_rank[i] << "), (" << old_name
-                << " -> " << new_name << ")\n";
-    }
   } else {
+#pragma sst keep
     MPI_Gather(&me, 1, MPI_INT, nullptr, 1, MPI_INT, 0, MPI_COMM_WORLD);
+#pragma sst keep
     MPI_Gather(world_host.data(), 256, MPI_CHAR, nullptr, 256,
                 MPI_CHAR, 0, MPI_COMM_WORLD);
 
     // Get new root for scrambled comm
     int scram_root = -1;
+#pragma sst keep
     MPI_Bcast(&scram_root, 1, MPI_INT, 0, MPI_COMM_WORLD);
+#pragma sst keep
     MPI_Gather(scram_host.data(), 256, MPI_CHAR, nullptr, 256,
                 MPI_CHAR, scram_root, scramble_comm);
   }
