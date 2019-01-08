@@ -10,9 +10,9 @@ std::array<int, 3> generate_scramble(int seed, MPI_Comm incomm, MPI_Comm* outcom
 {
   int me; MPI_Comm_rank(incomm, &me);
   int size; MPI_Comm_size(incomm, &size);
-  std::unint_fast32_t my_seed = (me + 7) * seed;
-  std::mt19937 gen(my_seed);
-  // std::minstd_rand gen(my_seed);
+  std::uint_fast32_t my_seed = (me + 7) * seed;
+  // std::mt19937 gen(my_seed);
+  std::minstd_rand gen(my_seed);
   std::uniform_int_distribution<int> int_dist(0, size*2);
   int color = 0; //all the same color - just resort
   int key = int_dist(gen);
