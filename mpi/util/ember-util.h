@@ -4,6 +4,7 @@
 #include <iostream>
 #include <sstream>
 #include <mpi.h>
+#include <array>
 
 void generate_scramble(int seed, MPI_Comm incomm, MPI_Comm* outcomm)
 {
@@ -23,7 +24,7 @@ void generate_scramble(int seed, MPI_Comm incomm, MPI_Comm* outcomm)
   }
 }
 
-std::string print_hostnames(const char* name, MPI_Comm incomm)
+std::array<char, 256> print_hostnames(const char* name, MPI_Comm incomm)
 {
   char my_host[256];
   int size; MPI_Comm_size(incomm, &size);
@@ -47,6 +48,8 @@ std::string print_hostnames(const char* name, MPI_Comm incomm)
                root, incomm);
   }
 
-  return std::string(my_host);
+  std::array<char, 256> out_array;
+  std::copy(my_host, my_host + 256, out_array.begin());
+  return out_array;
 }
 
