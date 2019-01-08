@@ -80,6 +80,23 @@ int main(int argc, char* argv[]) {
       std::cout << "(" << i << " -> " << new_rank[i] << "), (" << old_name
                 << " -> " << new_name << ")\n";
     }
+  } 
+
+
+  // Check Gather
+  if(world_me == 0){
+    MPI_Gather(&me, 1, MPI_INT, new_rank.data(), 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+    std::cout
+        << "\n\nGather Test\n\n(COMM_WORLD_RANK -> SCRAM_RANK)\n";
+    for (auto i = 0; i < world_size; ++i) {
+      auto old_name = std::string(&org_host[256 * i]);
+      auto new_name = std::string(&new_host[256 * i]);
+
+      std::cout << "(" << i << " -> " << new_rank[i] << ")\n";
+    }
+  } else {
+    MPI_Gather(&me, 1, MPI_INT, nullptr, 1, MPI_INT, 0, MPI_COMM_WORLD);
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
