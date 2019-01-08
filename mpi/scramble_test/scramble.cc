@@ -22,6 +22,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <array>
 
 #define sstmac_app_name scramble_test
 int main(int argc, char* argv[]) {
@@ -39,7 +40,7 @@ int main(int argc, char* argv[]) {
   MPI_Comm scramble_comm = MPI_COMM_WORLD;
 
   // Initial hostnames
-  auto world_host = print_hostnames("MPI_COMM_WORLD", MPI_COMM_WORLD);
+  std::array<char, 256> world_host = print_hostnames("MPI_COMM_WORLD", MPI_COMM_WORLD);
 
   bool did_scramble = false;
   for (int i = 1; i < argc; i++) {
@@ -55,17 +56,19 @@ int main(int argc, char* argv[]) {
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
-  auto scram_host = print_hostnames("Scrambled Comm", scramble_comm);
+  std::array<char, 256> scram_host = print_hostnames("Scrambled Comm", scramble_comm);
 
   std::vector<char> org_host(256 * world_size);
   std::vector<char> new_host(256 * world_size);
   std::vector<int> new_rank(world_size);
 
-  MPI_Allgather(world_host.c_str(), 256, MPI_CHAR, org_host.data(), 256,
+  MPI_Allgather(world_host.data(), 256, MPI_CHAR, org_host.data(), 256,
                 MPI_CHAR, MPI_COMM_WORLD);
-  MPI_Allgather(scram_host.c_str(), 256, MPI_CHAR, new_host.data(), 256,
+  MPI_Allgather(scram_host.data(), 256, MPI_CHAR, new_host.data(), 256,
                 MPI_CHAR, scramble_comm);
   MPI_Allgather(&me, 1, MPI_INT, new_rank.data(), 1, MPI_INT, MPI_COMM_WORLD);
+
+  MPI_Barrier(MPI_COMM_WORLD);
 
   if (world_me == 0) {
     std::cout
