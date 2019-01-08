@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
       print_hostnames("MPI_COMM_WORLD", MPI_COMM_WORLD);
 
   bool did_scramble = false;
-  std::array<unsigned long, 3> scramble_info;
+  std::array<unsigned long, 4> scramble_info;
 
   for (int i = 1; i < argc; i++) {
     if (std::strcmp(argv[i], "-scramble") == 0) {
@@ -69,7 +69,7 @@ int main(int argc, char* argv[]) {
     std::vector<char> org_host(256 * world_size);
     std::vector<char> new_host(256 * world_size);
     std::vector<int> new_rank(world_size);
-    std::vector<std::array<unsigned long, 3>> all_scramble_info(world_size);
+    std::vector<std::array<unsigned long, 4>> all_scramble_info(world_size);
 
 #pragma sst keep
     MPI_Gather(&me, 1, MPI_INT, new_rank.data(), 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -86,13 +86,13 @@ int main(int argc, char* argv[]) {
                me, scramble_comm);
 
 #pragma sst keep
-    MPI_Gather(scramble_info.data(), 3, MPI_UNSIGNED_LONG,
-               all_scramble_info.data(), 3, MPI_UNSIGNED_LONG, 0,
+    MPI_Gather(scramble_info.data(), 4, MPI_UNSIGNED_LONG,
+               all_scramble_info.data(), 4, MPI_UNSIGNED_LONG, 0,
                MPI_COMM_WORLD);
 
     std::cout
         << "(COMM_WORLD_RANK -> SCRAM_RANK), (COMM_WORLD_HOST -> SCRAM_HOST)\n";
-    std::cout << "\t(seed, rank first value, key)\n";
+    std::cout << "\t(seed, rank first value, rank last value, key)\n";
     for (auto i = 0; i < world_size; ++i) {
       auto old_name = std::string(&org_host[256 * i]);
       auto new_name = std::string(&new_host[256 * i]);
@@ -102,7 +102,7 @@ int main(int argc, char* argv[]) {
 
       auto key_info = all_scramble_info[i];
       std::cout << "\t(" << key_info[0] << ", " << key_info[1] << ", "
-                << key_info[2] << ")\n";
+                << key_info[2]  << ", " << key_info[3] << ")\n";
     }
   } else {
 #pragma sst keep
@@ -120,7 +120,7 @@ int main(int argc, char* argv[]) {
                scram_root, scramble_comm);
 
 #pragma sst keep
-    MPI_Gather(scramble_info.data(), 3, MPI_UNSIGNED_LONG, nullptr, 3,
+    MPI_Gather(scramble_info.data(), 4, MPI_UNSIGNED_LONG, nullptr, 4,
                MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
   }
 

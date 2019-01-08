@@ -6,7 +6,7 @@
 #include <sstream>
 #include <vector>
 
-std::array<unsigned long, 3> generate_scramble(std::uint_fast32_t seed,
+std::array<unsigned long, 4> generate_scramble(std::uint_fast32_t seed,
                                                MPI_Comm incomm,
                                                MPI_Comm* outcomm) {
   int me;
@@ -22,6 +22,7 @@ std::array<unsigned long, 3> generate_scramble(std::uint_fast32_t seed,
       gen();
     }
   }
+  std::uint_fast32_t final_gen_val = gen();
 
   // std::minstd_rand gen(my_seed);
   std::uniform_int_distribution<int> int_dist(0, size-1);
@@ -39,6 +40,7 @@ std::array<unsigned long, 3> generate_scramble(std::uint_fast32_t seed,
 
   return {{static_cast<unsigned long>(seed),
           static_cast<unsigned long>(intial_gen_val),
+          static_cast<unsigned long>(final_gen_val),
           static_cast<unsigned long>(key)}};
 }
 
