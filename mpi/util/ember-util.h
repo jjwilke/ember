@@ -11,8 +11,8 @@ std::array<int, 3> generate_scramble(int seed, MPI_Comm incomm, MPI_Comm* outcom
   int me; MPI_Comm_rank(incomm, &me);
   int size; MPI_Comm_size(incomm, &size);
   std::uint_fast32_t my_seed = (me + 7) * seed;
-  // std::mt19937 gen(my_seed);
-  std::minstd_rand gen(my_seed);
+  std::mt19937 gen(my_seed);
+  // std::minstd_rand gen(my_seed);
   std::uniform_int_distribution<int> int_dist(0, size*2);
   int color = 0; //all the same color - just resort
   int key = int_dist(gen);
@@ -23,7 +23,7 @@ std::array<int, 3> generate_scramble(int seed, MPI_Comm incomm, MPI_Comm* outcom
     std::cerr << "Comm split partitioned - not permuted - communicator" << std::endl;
     MPI_Abort(incomm, 1);
   }
-  return {seed, my_seed, key};
+  return {seed, static_cast<int>(my_seed), key};
 }
 
 std::array<char, 256> print_hostnames(const char* name, MPI_Comm incomm)
