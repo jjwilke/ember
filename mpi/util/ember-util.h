@@ -6,6 +6,24 @@
 #include <sstream>
 #include <vector>
 
+// Make bad, but portable uniform_int_dist
+struct uniorm_int_distribution {
+  template <typename Gen>
+  int operator()(Gen& g) {
+    auto range = b + 1 - a;
+    auto recompute_size = g.max() - g.max() % range;
+    while (true) {
+      int value = g();
+      if (value < recompute_size) {
+        return value % range;
+      }
+    }
+  }
+
+  std::uint_fast32_t a;
+  std::uint_fast32_t b;
+};
+
 std::array<unsigned long, 4> generate_scramble(std::uint_fast32_t seed,
                                                MPI_Comm incomm,
                                                MPI_Comm* outcomm) {
@@ -24,8 +42,9 @@ std::array<unsigned long, 4> generate_scramble(std::uint_fast32_t seed,
   }
   std::uint_fast32_t final_gen_val = gen();
 
-  // std::minstd_rand gen(my_seed);
-  std::uniform_int_distribution<int> int_dist(0, size-1);
+  // std::uniform_int_distribution<int> int_dist(0, size-1);
+  uniorm_int_distribution int_dist{0u,
+                                   static_cast<std::uint_fast32_t>(size - 1)};
   int color = 0;  // all the same color - just resort
   int key = int_dist(gen);
   MPI_Comm_split(incomm, color, key, outcomm);
@@ -39,9 +58,9 @@ std::array<unsigned long, 4> generate_scramble(std::uint_fast32_t seed,
   }
 
   return {{static_cast<unsigned long>(seed),
-          static_cast<unsigned long>(intial_gen_val),
-          static_cast<unsigned long>(final_gen_val),
-          static_cast<unsigned long>(key)}};
+           static_cast<unsigned long>(intial_gen_val),
+           static_cast<unsigned long>(final_gen_val),
+           static_cast<unsigned long>(key)}};
 }
 
 std::array<char, 256> print_hostnames(const char* name, MPI_Comm incomm) {
