@@ -6,7 +6,7 @@
 #include <mpi.h>
 #include <array>
 
-void generate_scramble(int seed, MPI_Comm incomm, MPI_Comm* outcomm)
+std::array<int, 3> generate_scramble(int seed, MPI_Comm incomm, MPI_Comm* outcomm)
 {
   int me; MPI_Comm_rank(incomm, &me);
   int size; MPI_Comm_size(incomm, &size);
@@ -22,6 +22,7 @@ void generate_scramble(int seed, MPI_Comm incomm, MPI_Comm* outcomm)
     std::cerr << "Comm split partitioned - not permuted - communicator" << std::endl;
     MPI_Abort(incomm, 1);
   }
+  return {seed, my_seed, key};
 }
 
 std::array<char, 256> print_hostnames(const char* name, MPI_Comm incomm)
