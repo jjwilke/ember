@@ -86,17 +86,33 @@ int main(int argc, char* argv[]) {
   // Check Gather
   if(world_me == 0){
     MPI_Gather(&me, 1, MPI_INT, new_rank.data(), 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Gather(world_host.data(), 256, MPI_CHAR, org_host.data(), 256,
+                MPI_CHAR, 0, MPI_COMM_WORLD);
+
+    // Deal with scram stuff since apparently allgather is broken for me in sst
+    MPI_Bcast(&me, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Gather(scram_host.data(), 256, MPI_CHAR, new_host.data(), 256,
+                MPI_CHAR, me, scramble_comm);
 
     std::cout
-        << "\n\nGather Test\n\n(COMM_WORLD_RANK -> SCRAM_RANK)\n";
+        << "\n\nGather Test\n\n(COMM_WORLD_RANK -> SCRAM_RANK), (COMM_WORLD_HOST -> SCRAM_HOST)\n";
     for (auto i = 0; i < world_size; ++i) {
       auto old_name = std::string(&org_host[256 * i]);
       auto new_name = std::string(&new_host[256 * i]);
 
-      std::cout << "(" << i << " -> " << new_rank[i] << ")\n";
+      std::cout << "(" << i << " -> " << new_rank[i] << "), (" << old_name
+                << " -> " << new_name << ")\n";
     }
   } else {
     MPI_Gather(&me, 1, MPI_INT, nullptr, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Gather(world_host.data(), 256, MPI_CHAR, nullptr, 256,
+                MPI_CHAR, 0, MPI_COMM_WORLD);
+
+    // Get new root for scrambled comm
+    int scram_root = -1;
+    MPI_Bcast(&scram_root, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Gather(scram_host.data(), 256, MPI_CHAR, nullptr, 256,
+                MPI_CHAR, scram_root, scramble_comm);
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
