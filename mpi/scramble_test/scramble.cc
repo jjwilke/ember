@@ -67,12 +67,12 @@ int main(int argc, char* argv[]) {
     MPI_Gather(world_host.c_str(), 256, MPI_CHAR, org_host.data(), 256, MPI_CHAR, 0, MPI_COMM_WORLD);
     MPI_Gather(scram_host.c_str(), 256, MPI_CHAR, new_host.data(), 256, MPI_CHAR, new_rank[0], scramble_comm);
 
-    std::cout << "COMM_WORLD_RANK, SCRAM_RANK, COMM_WORLD_HOST, SCRAM_HOST\n";
+    std::cout << "(COMM_WORLD_RANK -> SCRAM_RANK), (COMM_WORLD_HOST -> SCRAM_HOST)\n";
     for(auto i = 0; i < world_size; ++i){
       auto old_name = std::string(&org_host[256 * i]);
       auto new_name = std::string(&new_host[256 * i]);
       
-      std::cout << i << ", " << new_rank[i] << ", " << old_name << ", " << new_name << "\n";
+      std::cout << "(" << i << " -> " << new_rank[i] << "), (" << old_name << " -> " << new_name << ")\n";
     }
   } else {
     MPI_Gather(world_host.c_str(), 256, MPI_CHAR, nullptr, 256, MPI_CHAR, 0, MPI_COMM_WORLD);
