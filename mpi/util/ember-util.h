@@ -23,7 +23,7 @@ void generate_scramble(int seed, MPI_Comm incomm, MPI_Comm* outcomm)
   }
 }
 
-void print_hostnames(const char* name, MPI_Comm incomm)
+std::string print_hostnames(const char* name, MPI_Comm incomm)
 {
   char my_host[256];
   int size; MPI_Comm_size(incomm, &size);
@@ -46,5 +46,7 @@ void print_hostnames(const char* name, MPI_Comm incomm)
     MPI_Gather(my_host, 256, MPI_CHAR, nullptr, 256, MPI_CHAR,
                root, incomm);
   }
+
+  return std::string(my_host);
 }
 
