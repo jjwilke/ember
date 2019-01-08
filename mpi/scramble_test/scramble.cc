@@ -43,12 +43,10 @@ int main(int argc, char* argv[]) {
   std::array<char, 256> world_host =
       print_hostnames("MPI_COMM_WORLD", MPI_COMM_WORLD);
 
-  bool did_scramble = false;
-  std::array<unsigned long, 4> scramble_info;
+  int scramble_info = -1;
 
   for (int i = 1; i < argc; i++) {
     if (std::strcmp(argv[i], "-scramble") == 0) {
-      did_scramble = true;
       int seed = std::stoi(argv[i + 1]);
       scramble_info = generate_scramble(seed, MPI_COMM_WORLD, &scramble_comm);
       MPI_Comm_rank(scramble_comm, &me);
@@ -69,7 +67,7 @@ int main(int argc, char* argv[]) {
     std::vector<char> org_host(256 * world_size);
     std::vector<char> new_host(256 * world_size);
     std::vector<int> new_rank(world_size);
-    std::vector<std::array<unsigned long, 4>> all_scramble_info(world_size);
+    std::vector<int> all_scramble_info(world_size);
 
 #pragma sst keep
     MPI_Gather(&me, 1, MPI_INT, new_rank.data(), 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -78,7 +76,6 @@ int main(int argc, char* argv[]) {
     MPI_Gather(world_host.data(), 256, MPI_CHAR, org_host.data(), 256, MPI_CHAR,
                0, MPI_COMM_WORLD);
 
-    // Deal with scram stuff since apparently allgather is broken for me in sst
 #pragma sst keep
     MPI_Bcast(&me, 1, MPI_INT, 0, MPI_COMM_WORLD);
 #pragma sst keep
@@ -86,13 +83,12 @@ int main(int argc, char* argv[]) {
                me, scramble_comm);
 
 #pragma sst keep
-    MPI_Gather(scramble_info.data(), 4, MPI_UNSIGNED_LONG,
-               all_scramble_info.data(), 4, MPI_UNSIGNED_LONG, 0,
-               MPI_COMM_WORLD);
+    MPI_Gather(&scramble_info, 1, MPI_INT, all_scramble_info.data(), 1, MPI_INT,
+               0, MPI_COMM_WORLD);
 
     std::cout
         << "(COMM_WORLD_RANK -> SCRAM_RANK), (COMM_WORLD_HOST -> SCRAM_HOST)\n";
-    std::cout << "\t(seed, rank first value, rank last value, key)\n";
+    std::cout << "\t(key)\n";
     for (auto i = 0; i < world_size; ++i) {
       auto old_name = std::string(&org_host[256 * i]);
       auto new_name = std::string(&new_host[256 * i]);
@@ -101,8 +97,7 @@ int main(int argc, char* argv[]) {
                 << " -> " << new_name << ")\n";
 
       auto key_info = all_scramble_info[i];
-      std::cout << "\t(" << key_info[0] << ", " << key_info[1] << ", "
-                << key_info[2]  << ", " << key_info[3] << ")\n";
+      std::cout << "\t(" << key_info << ")\n";
     }
   } else {
 #pragma sst keep
@@ -120,8 +115,8 @@ int main(int argc, char* argv[]) {
                scram_root, scramble_comm);
 
 #pragma sst keep
-    MPI_Gather(scramble_info.data(), 4, MPI_UNSIGNED_LONG, nullptr, 4,
-               MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
+    MPI_Gather(&scramble_info, 1, MPI_INT, nullptr, 1, MPI_INT, 0,
+               MPI_COMM_WORLD);
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
