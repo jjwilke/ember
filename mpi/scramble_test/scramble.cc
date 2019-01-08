@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
   MPI_Comm scramble_comm = MPI_COMM_WORLD;
 
   // Initial hostnames
-  auto world_host = print_hostnames("MPI_COMM_WORLD", scramble_comm);
+  auto world_host = print_hostnames("MPI_COMM_WORLD", MPI_COMM_WORLD);
 
   bool did_scramble = false;
   for (int i = 1; i < argc; i++) {
@@ -63,7 +63,7 @@ int main(int argc, char* argv[]) {
     std::vector<int> new_rank(world_size);
 
     MPI_Gather(world_host.c_str(), 256, MPI_CHAR, org_host.data(), 256, MPI_CHAR, 0, MPI_COMM_WORLD);
-    MPI_Gather(scram_host.c_str(), 256, MPI_CHAR, new_host.data(), 256, MPI_CHAR, 0, MPI_COMM_WORLD);
+    MPI_Gather(scram_host.c_str(), 256, MPI_CHAR, new_host.data(), 256, MPI_CHAR, 0, scramble_comm);
     MPI_Gather(&me, 1, MPI_INT, new_rank.data(), 1, MPI_INT, 0, MPI_COMM_WORLD);
 
     std::cout << "COMM_WORLD_RANK, SCRAM_RANK, COMM_WORLD_HOST, SCRAM_HOST\n";
@@ -75,7 +75,7 @@ int main(int argc, char* argv[]) {
     }
   } else {
     MPI_Gather(world_host.c_str(), 256, MPI_CHAR, nullptr, 256, MPI_CHAR, 0, MPI_COMM_WORLD);
-    MPI_Gather(scram_host.c_str(), 256, MPI_CHAR, nullptr, 256, MPI_CHAR, 0, MPI_COMM_WORLD);
+    MPI_Gather(scram_host.c_str(), 256, MPI_CHAR, nullptr, 256, MPI_CHAR, 0, scramble_comm);
     MPI_Gather(&me, 1, MPI_INT, nullptr, 1, MPI_INT, 0, MPI_COMM_WORLD);
   }
 

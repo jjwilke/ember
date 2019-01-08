@@ -1,7 +1,7 @@
 
 CXX=mpicxx
 ifeq ($(SSTMAC_SKELETONIZE),1)
-CXX=/Users/canlewi/software/sst-macro/install/fast_build/bin/sst++
+CXX=sst++
 endif
 CXXFLAGS=-O3 -std=c++11
 CPPFLAGS=-I../util
