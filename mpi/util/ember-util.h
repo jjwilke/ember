@@ -23,7 +23,7 @@ int generate_scramble(std::uint_fast32_t seed, MPI_Comm incomm,
 
   int color = 0;  // all the same color - just resort
   int key = gen();
-  MPI_Comm_split(incomm, color, gen(), outcomm);
+  MPI_Comm_split(incomm, color, key, outcomm);
 
   int test_size;
   MPI_Comm_size(*outcomm, &test_size);
