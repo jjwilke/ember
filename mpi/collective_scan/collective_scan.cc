@@ -7,6 +7,7 @@
 #include <iostream>
 #include <map>
 #include <numeric>
+#include <thread>
 #include <tuple>
 #include <vector>
 
@@ -21,6 +22,8 @@ auto diff_in_s(Tp const& first, Tp const& second) {
   return std::chrono::duration<double>(second - first).count();
 }
 #else
+extern "C" double sstmac_now();
+
 auto now() { return sstmac_now(); }
 
 template <typename Tp>
@@ -125,7 +128,8 @@ return_type run_Allreduce(int nelements, int niters, CollectiveRunner& crun) {
                              out_data.data(), nelements, MPI_INT, MPI_SUM);
 }
 
-const std::map<std::string, std::function<return_type(int, int, CollectiveRunner&)>>
+const std::map<std::string,
+               std::function<return_type(int, int, CollectiveRunner&)>>
     collective_function_map = {{"Bcast", run_Bcast},
                                {"Allgather", run_Allgather},
                                {"Alltoall", run_Alltoall},
@@ -148,14 +152,17 @@ bool cmdOptionExists(char** begin, char** end, const std::string& option) {
 int main(int argc, char** argv) {
   if (cmdOptionExists(argv, argv + argc, "-h")) {
     std::cout << "Program options with defaults:\n";
-    std::cout << "-iterations : " << 100 << " number of times to collect times for each collective\n";
-    std::cout << "-scramble   : " << 0 << " seed to help generate a new proc ordering\n";
-    std::cout << "-warmup     : " << warm_up_iters << " number of iterations to run before collecting data" << std::endl;
+    std::cout << "-iterations : " << 100
+              << " number of times to collect times for each collective\n";
+    std::cout << "-scramble   : " << 0
+              << " seed to help generate a new proc ordering\n";
+    std::cout << "-warmup     : " << warm_up_iters
+              << " number of iterations to run before collecting data"
+              << std::endl;
     return 0;
   }
 
   MPI_Init(&argc, &argv);
-
 
   const std::uint_fast32_t scramble_seed = [&argc, &argv] {
     if (cmdOptionExists(argv, argv + argc, "-scramble")) {
@@ -194,7 +201,7 @@ int main(int argc, char** argv) {
   MPI_Comm_rank(my_world_comm, &rank);
   MPI_Comm_size(my_world_comm, &size);
 
-  if(rank == 0){
+  if (rank == 0) {
     std::cout << "nrepeats     : " << nrepeats << "\n";
     std::cout << "scramble seed: " << scramble_seed << "\n";
     std::cout << "warmup iters : " << warm_up_iters << "\n" << std::endl;
@@ -210,11 +217,11 @@ int main(int argc, char** argv) {
     return out;
   }();
 
-
   CollectiveRunner crun(my_world_comm);
   for (auto num_ints : num_ints_to_send) {
     if (rank == 0) {
-      std::cout << "Message size: " << num_ints << " ints " << num_ints * sizeof(int) << " bytes" << std::endl;
+      std::cout << "Message size: " << num_ints << " ints "
+                << num_ints * sizeof(int) << " bytes" << std::endl;
       printf("\t%-10s: %15s %15s %15s %15s\n", "Name", "Avg Time0", "STD DEV0",
              "Avg TimeG", "STD DEVG");
     }
@@ -254,6 +261,5 @@ int main(int argc, char** argv) {
 
   MPI_Barrier(my_world_comm);
   MPI_Finalize();
-
   return 0;
 }
