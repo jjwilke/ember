@@ -15,19 +15,21 @@ static int warm_up_iters = 50;
 
 // The Simulator is defeated by chrono, for now 01/09/2019
 #ifndef SSTMAC
-auto now() { return std::chrono::high_resolution_clock::now(); }
+decltype(std::chrono::high_resolution_clock::now()) now() {
+  return std::chrono::high_resolution_clock::now();
+}
 
 template <typename Tp>
-auto diff_in_s(Tp const& first, Tp const& second) {
+double diff_in_s(Tp const& first, Tp const& second) {
   return std::chrono::duration<double>(second - first).count();
 }
 #else
 extern "C" double sstmac_now();
 
-auto now() { return sstmac_now(); }
+double now() { return sstmac_now(); }
 
 template <typename Tp>
-auto diff_in_s(Tp const& first, Tp const& second) {
+double diff_in_s(Tp const& first, Tp const& second) {
   return second - first;
 }
 #endif
