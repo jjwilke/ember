@@ -12,12 +12,22 @@
 
 static int warm_up_iters = 50;
 
+// The Simulator is defeated by chrono, for now 01/09/2019
+#ifndef SSTMAC
 auto now() { return std::chrono::high_resolution_clock::now(); }
 
 template <typename Tp>
 auto diff_in_s(Tp const& first, Tp const& second) {
   return std::chrono::duration<double>(second - first).count();
 }
+#else
+auto now() { return sstmac_now(); }
+
+template <typename Tp>
+auto diff_in_s(Tp const& first, Tp const& second) {
+  return second - first;
+}
+#endif
 
 using return_type = std::tuple<double, double, std::vector<double>>;
 class CollectiveRunner {
@@ -75,38 +85,47 @@ class CollectiveRunner {
 };
 
 return_type run_Bcast(int nelements, int niters, CollectiveRunner& crun) {
+#pragma sst null_type sstmac::vector size resize empty data
   auto data = std::vector<int>(nelements);
-  std::fill(data.begin(), data.end(), crun.rank());
+  memset(data.data(), crun.rank() + 1, nelements);
   return crun.run_collective(niters, MPI_Bcast, data.data(), nelements, MPI_INT,
                              0);
 }
 
 return_type run_Allgather(int nelements, int niters, CollectiveRunner& crun) {
+#pragma sst null_type sstmac::vector size resize empty data
   auto data = std::vector<int>(nelements);
+  memset(data.data(), crun.rank() + 1, nelements);
+#pragma sst null_type sstmac::vector size resize empty data
   auto out_data = std::vector<int>(crun.size() * nelements);
-  std::fill(data.begin(), data.end(), crun.rank());
   return crun.run_collective(niters, MPI_Allgather, data.data(), nelements,
                              MPI_INT, out_data.data(), nelements, MPI_INT);
 }
 
 return_type run_Alltoall(int nelements, int niters, CollectiveRunner& crun) {
   const auto size = crun.size();
+#pragma sst null_type sstmac::vector size empty data
   auto data = std::vector<int>(size * nelements);
-  std::fill(data.begin(), data.end(), crun.rank());
+  memset(data.data(), crun.rank() + 1, nelements);
+
+#pragma sst null_type sstmac::vector size resize empty data
   auto out_data = std::vector<int>(size * nelements);
   return crun.run_collective(niters, MPI_Alltoall, data.data(), nelements,
                              MPI_INT, out_data.data(), nelements, MPI_INT);
 }
 
 return_type run_Allreduce(int nelements, int niters, CollectiveRunner& crun) {
+#pragma sst null_type sstmac::vector size resize empty data
   auto data = std::vector<int>(nelements);
-  std::fill(data.begin(), data.end(), crun.rank());
+  memset(data.data(), crun.rank(), nelements);
+
+#pragma sst null_type sstmac::vector size resize empty data
   auto out_data = std::vector<int>(nelements);
   return crun.run_collective(niters, MPI_Allreduce, data.data(),
                              out_data.data(), nelements, MPI_INT, MPI_SUM);
 }
 
-std::map<std::string, std::function<return_type(int, int, CollectiveRunner&)>>
+const std::map<std::string, std::function<return_type(int, int, CollectiveRunner&)>>
     collective_function_map = {{"Bcast", run_Bcast},
                                {"Allgather", run_Allgather},
                                {"Alltoall", run_Alltoall},
@@ -125,6 +144,7 @@ bool cmdOptionExists(char** begin, char** end, const std::string& option) {
   return std::find(begin, end, option) != end;
 }
 
+#define sstmac_app_name collective_scan
 int main(int argc, char** argv) {
   if (cmdOptionExists(argv, argv + argc, "-h")) {
     std::cout << "Program options with defaults:\n";
@@ -210,6 +230,7 @@ int main(int argc, char** argv) {
 
       // Get all  the timeings
       std::vector<double> global_times(nrepeats * size);
+#pragma sst keep
       MPI_Gather(all_times.data(), nrepeats, MPI_DOUBLE, global_times.data(),
                  nrepeats, MPI_DOUBLE, 0, my_world_comm);
 
