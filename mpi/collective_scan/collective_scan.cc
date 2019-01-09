@@ -112,12 +112,51 @@ std::map<std::string, std::function<return_type(int, int, CollectiveRunner&)>>
                                {"Alltoall", run_Alltoall},
                                {"Allreduce", run_Allreduce}};
 
-int main(int argc, char** argv) {
-  MPI_Init(&argc, &argv);
-  print_hostnames("MPI_COMM_WORLD", MPI_COMM_WORLD);
+// Took these two guys from
+// https://stackoverflow.com/questions/865668/how-to-parse-command-line-arguments-in-c
+char* getCmdOption(char** begin, char** end, const std::string& option) {
+  char** itr = std::find(begin, end, option);
+  if (itr != end && ++itr != end) {
+    return *itr;
+  }
+  return 0;
+}
+bool cmdOptionExists(char** begin, char** end, const std::string& option) {
+  return std::find(begin, end, option) != end;
+}
 
-  // Parse input at some later date
-  std::uint_fast32_t scramble_seed = 73;  // Parse this later
+int main(int argc, char** argv) {
+  if (cmdOptionExists(argv, argv + argc, "-h")) {
+    std::cout << "Program options with defaults:\n";
+    std::cout << "-iterations : " << 100 << " number of times to collect times for each collective\n";
+    std::cout << "-scramble   : " << 0 << " seed to help generate a new proc ordering\n";
+    std::cout << "-warmup     : " << warm_up_iters << " number of iterations to run before collecting data" << std::endl;
+    return 0;
+  }
+
+  MPI_Init(&argc, &argv);
+
+
+  const std::uint_fast32_t scramble_seed = [&argc, &argv] {
+    if (cmdOptionExists(argv, argv + argc, "-scramble")) {
+      return std::stoi(getCmdOption(argv, argv + argc, "-scramble"));
+    } else {
+      return 0;
+    }
+  }();
+
+  const int nrepeats = [&argc, &argv] {
+    if (cmdOptionExists(argv, argv + argc, "-iterations")) {
+      return std::stoi(getCmdOption(argv, argv + argc, "-iterations"));
+    } else {
+      return 100;
+    }
+  }();
+
+  if (cmdOptionExists(argv, argv + argc, "-warmup")) {
+    warm_up_iters = std::stoi(getCmdOption(argv, argv + argc, "-warmup"));
+  }
+
   MPI_Comm my_world_comm = [&scramble_seed] {
     MPI_Comm out_comm = MPI_COMM_NULL;
     if (scramble_seed > 0) {
@@ -127,9 +166,21 @@ int main(int argc, char** argv) {
     }
     return out_comm;
   }();
+  print_hostnames("MPI_COMM_WORLD", MPI_COMM_WORLD);
   print_hostnames("Comm used for running jobs", my_world_comm);
 
-  int nrepeats = 100;
+  int rank = -1;
+  int size = -1;
+  MPI_Comm_rank(my_world_comm, &rank);
+  MPI_Comm_size(my_world_comm, &size);
+
+  if(rank == 0){
+    std::cout << "nrepeats     : " << nrepeats << "\n";
+    std::cout << "scramble seed: " << scramble_seed << "\n";
+    std::cout << "warmup iters : " << warm_up_iters << "\n" << std::endl;
+  }
+  MPI_Barrier(my_world_comm);
+
   const std::vector<int> num_ints_to_send = [] {
     std::vector<int> out = {64, 4096, 65536};  // Bytes
     const auto int_size = sizeof(int);
@@ -139,16 +190,13 @@ int main(int argc, char** argv) {
     return out;
   }();
 
-  int rank = -1;
-  int size = -1;
-  MPI_Comm_rank(my_world_comm, &rank);
-  MPI_Comm_size(my_world_comm, &size);
 
   CollectiveRunner crun(my_world_comm);
   for (auto num_ints : num_ints_to_send) {
     if (rank == 0) {
-      std::cout << "Message size: " << num_ints << " ints" << std::endl;
-      printf("\t%-10s: %15s %15s %15s %15s\n", "Name", "Avg Time0", "STD DEV0", "Avg TimeG", "STD DEVG");
+      std::cout << "Message size: " << num_ints << " ints " << num_ints * sizeof(int) << " bytes" << std::endl;
+      printf("\t%-10s: %15s %15s %15s %15s\n", "Name", "Avg Time0", "STD DEV0",
+             "Avg TimeG", "STD DEVG");
     }
     MPI_Barrier(my_world_comm);
 
@@ -177,7 +225,8 @@ int main(int argc, char** argv) {
       double gstd_dev = std::sqrt(gavg_total2 - gavg_total * gavg_total);
 
       if (rank == 0) {
-        printf("\t%-10s: %15.9f %15.9f %15.9f %15.9f\n", name.c_str(), avg_time, std_dev, gavg_total, gstd_dev);
+        printf("\t%-10s: %15.9f %15.9f %15.9f %15.9f\n", name.c_str(), avg_time,
+               std_dev, gavg_total, gstd_dev);
       }
     }
   }
@@ -187,4 +236,3 @@ int main(int argc, char** argv) {
 
   return 0;
 }
-
