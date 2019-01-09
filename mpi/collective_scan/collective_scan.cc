@@ -76,22 +76,18 @@ int main(int argc, char** argv) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-  const std::vector<int> node_sizes = [] {
+  const std::vector<int> node_sizes = [&size] {
     std::vector<int> vec = {16};
     auto i = 0;
-    while (vec[i] < 1024) {
+    while (vec[i] < size) {
       vec.emplace_back(vec.back() + 16);
       ++i;
     }
-    vec.back() = 1024;
+    vec.back() = size;
     return vec;
   }();
 
   for(auto ns : node_sizes){
-    if(ns > size){
-       break;
-    }
-
     if(rank == 0){
       std::cout << "Running problem of size: " << ns << std::endl;
     }
