@@ -10,6 +10,7 @@
 #include <thread>
 #include <tuple>
 #include <vector>
+#include <algorithm>
 
 static int warm_up_iters = 50;
 
@@ -37,7 +38,7 @@ double diff_in_s(Tp const& first, Tp const& second) {
 using return_type = std::tuple<double, double, std::vector<double>>;
 class CollectiveRunner {
  public:
-  CollectiveRunner(MPI_Comm comm) { MPI_Comm_dup(comm, &comm_); }
+  CollectiveRunner(MPI_Comm comm) : comm_(comm) { }
 
   // Returns the average time and a list of times on this node.
   template <typename F, typename... Args>
@@ -187,13 +188,13 @@ int main(int argc, char** argv) {
   }
 
   MPI_Comm my_world_comm = [&scramble_seed] {
-    MPI_Comm out_comm = MPI_COMM_NULL;
     if (scramble_seed > 0) {
+      MPI_Comm out_comm = MPI_COMM_NULL;
       generate_scramble(scramble_seed, MPI_COMM_WORLD, &out_comm);
+      return out_comm;
     } else {
-      MPI_Comm_dup(MPI_COMM_WORLD, &out_comm);
+      return MPI_COMM_WORLD;
     }
-    return out_comm;
   }();
   print_hostnames("MPI_COMM_WORLD", MPI_COMM_WORLD);
   print_hostnames("Comm used for running jobs", my_world_comm);
