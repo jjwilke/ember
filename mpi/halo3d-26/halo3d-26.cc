@@ -421,6 +421,9 @@ int main(int argc, char* argv[]) {
 
   for (int i = 0; i < repeats; ++i) {
     requestcount = 0;
+    struct timeval iter_start;
+    struct timeval iter_end;
+    gettimeofday(&iter_start, NULL);
 
     if (nanosleep(&sleepTS, &remainTS) == EINTR) {
       while (nanosleep(&remainTS, &remainTS) == EINTR)
@@ -555,6 +558,9 @@ int main(int argc, char* argv[]) {
 
     MPI_Waitall(requestcount, requests, status);
     requestcount = 0;
+    gettimeofday(&iter_end, NULL);
+    const double timeTaken = (iter_end.tv_sec-iter_start.tv_sec) + (iter_end.tv_usec-iter_start.tv_usec)*1e-6;
+    printf("Rank %d = [%d,%d,%d] iteration %d: %12.8fs\n", me, pex, pey, pez, i, timeTaken);
   }
 
   gettimeofday(&end, NULL);

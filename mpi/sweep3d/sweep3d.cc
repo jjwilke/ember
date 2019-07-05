@@ -191,6 +191,9 @@ int main(int argc, char* argv[]) {
   // and then the bottom four vertices next.
   for (int i = 0; i < (repeats * 2); ++i) {
     // Recreate communication pattern of sweep from (0,0) towards (Px,Py)
+    struct timeval iter_start;
+    struct timeval iter_end;
+    gettimeofday(&iter_start, NULL);
     for (int k = 0; k < nz; k += kba) {
       if (xDown > -1) {
         MPI_Recv(xRecvBuffer, (nx * kba * vars), MPI_DOUBLE, xDown, 1000,
@@ -289,6 +292,9 @@ int main(int argc, char* argv[]) {
                  sweep_comm);
       }
     }
+    gettimeofday(&iter_end, NULL);
+    const double timeTaken = (iter_end.tv_sec-iter_start.tv_sec) + (iter_end.tv_usec-iter_start.tv_usec)*1e-6;
+    printf("Rank %d = [%d,%d] iteration %d: %12.8fs\n", me, myX, myY, i, timeTaken);
   }
 
   MPI_Barrier(MPI_COMM_WORLD);

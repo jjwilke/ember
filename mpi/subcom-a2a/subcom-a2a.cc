@@ -115,6 +115,7 @@ int main(int argc, char **argv)
 
   startTime = MPI_Wtime();
   for (int i = 0; i < MAX_ITER; i++) {
+    double start = MPI_Wtime();
     if(!skip[MP_X]) {
 #if WRITE_OTF2_TRACE
       // Marks compute region before messaging
@@ -156,6 +157,9 @@ int main(int argc, char **argv)
       SCOREP_USER_REGION_BY_NAME_END("TRACER_a2a_post_z");
 #endif
     }
+    double stop = MPI_Wtime();
+    printf("Rank %d=[%d,%d,%d] iteration %d: %12.8fs\n", 
+           myrank, myXcoord, myYcoord, myZcoord, i, (stop-start));
   }
 
 #if WRITE_OTF2_TRACE

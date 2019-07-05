@@ -1,10 +1,9 @@
 
 CXX=mpicxx
 ifeq ($(SSTMAC_SKELETONIZE),1)
-#CXX="/projects/wg-sst/ecp_he_sim_only_final_dir/install/sstmac-yes-core/bin/sst++"
-CXX="/projects/wg-sst/ecp_he_sim_only_final_dir/install/sstmac-yes-core-correct-permissions/bin/sst++"
+CXX=sst++
 endif
-CXXFLAGS=-O3 -std=c++11
+CXXFLAGS=-O3 -std=c++11 -fPIC
 CPPFLAGS=-I../util
 LIBS=
 
