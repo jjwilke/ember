@@ -63,9 +63,7 @@ int main(int argc, char **argv)
   print_hostnames("Subcom Communicator", comm);
   
   if(dims[MP_X] * dims[MP_Y] * dims[MP_Z] != numranks) {
-    if(!myrank) {
-      printf("\n nx * ny * nz does not equal number of ranks. \n");
-    }
+    fprintf(stderr, "\n nx * ny * nz does not equal number of ranks\n");
     MPI_Abort(MPI_COMM_WORLD, 1);
   }
 

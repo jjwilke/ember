@@ -187,12 +187,9 @@ int main(int argc, char* argv[]) {
   MPI_Barrier(MPI_COMM_WORLD);
 
   if ((pex * pey * pez) != size) {
-    if (0 == me) {
-      fprintf(stderr, "Error: rank grid does not equal number of ranks.\n");
-      fprintf(stderr, "%7d x %7d x %7d != %7d\n", pex, pey, pez, size);
-    }
-
-    exit(-1);
+    fprintf(stderr, "Error: rank grid does not equal number of ranks.\n");
+    fprintf(stderr, "%7d x %7d x %7d != %7d\n", pex, pey, pez, size);
+    MPI_Abort(MPI_COMM_WORLD, 1);
   }
 
   print_hostnames("MPI_COMM_WORLD", MPI_COMM_WORLD);
@@ -560,7 +557,7 @@ int main(int argc, char* argv[]) {
     requestcount = 0;
     gettimeofday(&iter_end, NULL);
     const double timeTaken = (iter_end.tv_sec-iter_start.tv_sec) + (iter_end.tv_usec-iter_start.tv_usec)*1e-6;
-    printf("Rank %d = [%d,%d,%d] iteration %d: %12.8fs\n", me, pex, pey, pez, i, timeTaken);
+    printf("Rank %d = [%d,%d,%d] iteration %d: %12.8fs\n", me, posX, posY, posZ, i, timeTaken);
   }
 
   gettimeofday(&end, NULL);
