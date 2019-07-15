@@ -156,7 +156,7 @@ int main(int argc, char **argv)
 #endif
     }
     double stop = MPI_Wtime();
-    printf("Rank %d=[%d,%d,%d] iteration %d: %12.8fs\n", 
+    printf("Rank %d = [%d,%d,%d] iteration %d: %12.8fs\n", 
            myrank, myXcoord, myYcoord, myZcoord, i, (stop-start));
   }
 
