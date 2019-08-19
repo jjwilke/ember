@@ -41,8 +41,6 @@ int convert_position_to_rank(const int pX, const int pY, const int pZ,
   }
 }
 
-
-#define sstmac_app_name halo3d26
 int main(int argc, char* argv[]) {
   MPI_Init(&argc, &argv);
 
@@ -69,6 +67,8 @@ int main(int argc, char* argv[]) {
   int vars = 1;
 
   long sleep = 1000;
+
+  int print = 0;
 
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "-nx") == 0) {
@@ -170,6 +170,9 @@ int main(int argc, char* argv[]) {
 
       sleep = atol(argv[i + 1]);
       ++i;
+    } else if (strcmp(argv[i], "-print") == 0){
+      print = atoi(argv[i + 1]);
+      ++i;
     } else if (strcmp(argv[i], "-scramble") == 0){
       int scrambler = atol(argv[i+1]);
       generate_scramble(scrambler, MPI_COMM_WORLD, &halo_comm);
@@ -192,12 +195,12 @@ int main(int argc, char* argv[]) {
     MPI_Abort(MPI_COMM_WORLD, 1);
   }
 
-  print_hostnames("MPI_COMM_WORLD", MPI_COMM_WORLD);
-  print_hostnames("Sweep Communicator", halo_comm);
+  //print_hostnames("MPI_COMM_WORLD", MPI_COMM_WORLD);
+  //print_hostnames("Sweep Communicator", halo_comm);
 
   MPI_Barrier(MPI_COMM_WORLD);
 
-  if (me == 0) {
+  if (me == 0 && print) {
     printf("# MPI Nearest Neighbor Communication\n");
     printf("# Info:\n");
     printf("# Processor Grid:         %7d x %7d x %7d\n", pex, pey, pez);
@@ -557,7 +560,9 @@ int main(int argc, char* argv[]) {
     requestcount = 0;
     gettimeofday(&iter_end, NULL);
     const double timeTaken = (iter_end.tv_sec-iter_start.tv_sec) + (iter_end.tv_usec-iter_start.tv_usec)*1e-6;
-    printf("Rank %d = [%d,%d,%d] iteration %d: %12.8fs\n", me, posX, posY, posZ, i, timeTaken);
+    if (print){
+      printf("Rank %d = [%d,%d,%d] iteration %d: %12.8fs\n", me, posX, posY, posZ, i, timeTaken);
+    }
   }
 
   gettimeofday(&end, NULL);
@@ -573,22 +578,25 @@ int main(int argc, char* argv[]) {
 
   if (convert_position_to_rank(pex, pey, pez, pex / 2, pey / 2, pez / 2) ==
       me) {
-    printf("# Results from rank: %d\n", me);
 
-    const double timeTaken =
-        (((double)end.tv_sec) + ((double)end.tv_usec) * 1.0e-6) -
-        (((double)start.tv_sec) + ((double)start.tv_usec) * 1.0e-6);
-    const double bytesXchng =
-        ((double)(xFaceUp > -1 ? sizeof(double) * ny * nz * 2 * vars : 0)) +
-        ((double)(xFaceDown > -1 ? sizeof(double) * ny * nz * 2 * vars : 0)) +
-        ((double)(yFaceUp > -1 ? sizeof(double) * nx * nz * 2 * vars : 0)) +
-        ((double)(yFaceDown > -1 ? sizeof(double) * nx * nz * 2 * vars : 0)) +
-        ((double)(zFaceUp > -1 ? sizeof(double) * nx * ny * 2 * vars : 0)) +
-        ((double)(zFaceDown > -1 ? sizeof(double) * nx * ny * 2 * vars : 0));
+    if (print){
+      printf("# Results from rank: %d\n", me);
 
-    printf("# %20s %20s %20s\n", "Time", "KBytesXchng/Rank-Max", "MB/S/Rank");
-    printf("  %20.6f %20.4f %20.4f\n", timeTaken, bytesXchng / 1024.0,
-           (bytesXchng / 1024.0) / timeTaken);
+      const double timeTaken =
+          (((double)end.tv_sec) + ((double)end.tv_usec) * 1.0e-6) -
+          (((double)start.tv_sec) + ((double)start.tv_usec) * 1.0e-6);
+      const double bytesXchng =
+          ((double)(xFaceUp > -1 ? sizeof(double) * ny * nz * 2 * vars : 0)) +
+          ((double)(xFaceDown > -1 ? sizeof(double) * ny * nz * 2 * vars : 0)) +
+          ((double)(yFaceUp > -1 ? sizeof(double) * nx * nz * 2 * vars : 0)) +
+          ((double)(yFaceDown > -1 ? sizeof(double) * nx * nz * 2 * vars : 0)) +
+          ((double)(zFaceUp > -1 ? sizeof(double) * nx * ny * 2 * vars : 0)) +
+          ((double)(zFaceDown > -1 ? sizeof(double) * nx * ny * 2 * vars : 0));
+
+      printf("# %20s %20s %20s\n", "Time", "KBytesXchng/Rank-Max", "MB/S/Rank");
+      printf("  %20.6f %20.4f %20.4f\n", timeTaken, bytesXchng / 1024.0,
+             (bytesXchng / 1024.0) / timeTaken);
+    }
   }
 
   MPI_Finalize();

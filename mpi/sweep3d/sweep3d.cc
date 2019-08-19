@@ -41,7 +41,6 @@ void compute(long sleep) {
   }
 }
 
-#define sstmac_app_name sweep3d
 int main(int argc, char* argv[]) {
   MPI_Init(&argc, &argv);
 
@@ -65,6 +64,7 @@ int main(int argc, char* argv[]) {
 
   int vars = 1;
   long sleep = 1000;
+  int print = 0;
 
   for (int i = 0; i < argc; ++i) {
     if (strcmp("-pex", argv[i]) == 0) {
@@ -99,11 +99,14 @@ int main(int argc, char* argv[]) {
       generate_scramble(scrambler, MPI_COMM_WORLD, &sweep_comm);
       MPI_Comm_rank(sweep_comm, &me);
       ++i; 
+    }  else if (strcmp(argv[i], "-print") == 0){
+      print = atoi(argv[i + 1]);
+      i++;
     }
   }
 
-  print_hostnames("MPI_COMM_WORLD", MPI_COMM_WORLD);
-  print_hostnames("Sweep Communicator", sweep_comm);
+  //print_hostnames("MPI_COMM_WORLD", MPI_COMM_WORLD);
+  //print_hostnames("Sweep Communicator", sweep_comm);
 
   if (kba == 0) {
     if (me == 0) {
@@ -137,7 +140,7 @@ int main(int argc, char* argv[]) {
     exit(-1);
   }
 
-  if (me == 0) {
+  if (me == 0 && print) {
     printf("# Sweep3D Communication Pattern\n");
     printf("# Info:\n");
     printf("# Px:              %8d\n", pex);
@@ -294,7 +297,9 @@ int main(int argc, char* argv[]) {
     }
     gettimeofday(&iter_end, NULL);
     const double timeTaken = (iter_end.tv_sec-iter_start.tv_sec) + (iter_end.tv_usec-iter_start.tv_usec)*1e-6;
-    printf("Rank %d = [%d,%d] iteration %d: %12.8fs\n", me, myX, myY, i, timeTaken);
+    if (print){
+      printf("Rank %d = [%d,%d] iteration %d: %12.8fs\n", me, myX, myY, i, timeTaken);
+    }
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
@@ -311,10 +316,12 @@ int main(int argc, char* argv[]) {
        ((double)(yDown > -1 ? sizeof(double) * ny * kba * vars * 2 : 0)));
 
   if ((myX == (pex / 2)) && (myY == (pey / 2))) {
-    printf("# Results from rank: %d\n", me);
-    printf("# %20s %20s %20s\n", "Time", "KBytesXchng/Rank-Max", "MB/S/Rank");
-    printf("  %20.6f %20.4f %20.4f\n", timeTaken, bytesXchng / 1024.0,
-           (bytesXchng / 1024.0) / timeTaken);
+    if (print){
+      printf("# Results from rank: %d\n", me);
+      printf("# %20s %20s %20s\n", "Time", "KBytesXchng/Rank-Max", "MB/S/Rank");
+      printf("  %20.6f %20.4f %20.4f\n", timeTaken, bytesXchng / 1024.0,
+             (bytesXchng / 1024.0) / timeTaken);
+    }
   }
   MPI_Finalize();
   return 0;
